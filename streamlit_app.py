@@ -15,15 +15,15 @@ def load_model():
 def build_prompt(ingredients: str, vegetarian: bool) -> str:
     veg_clause = "Make vegetarian versions when possible." if vegetarian else "Include an optional healthier or vegetarian version when applicable."
     prompt = f"""
-You are a helpful chef. Create 3 recipe ideas using only these ingredients: {ingredients}.
-For each recipe, provide:
-- Recipe name
-- Ingredients with approximate quantities
-- Step-by-step cooking instructions
-- Estimated total cooking time
-- An optional healthier or vegetarian version
+You are a helpful chef. Create 3 distinct recipe ideas using only these ingredients: {ingredients}.
+Do NOT repeat the full ingredient list as the recipe name. For each recipe, provide the following sections clearly labeled:
+- Recipe name:
+- Ingredients: (with approximate quantities)
+- Steps: (step-by-step cooking instructions)
+- Estimated time:
+- Healthy/Vegetarian version: (optional)
 {veg_clause}
-Keep answers concise and easy to follow.
+Respond in plain text with each recipe separated by a blank line. Keep answers concise and easy to follow.
 """
     return prompt
 
@@ -33,7 +33,15 @@ def generate(prompt: str, max_new_tokens: int = 256) -> str:
     inputs = tokenizer(prompt, return_tensors="pt", truncation=True)
     if torch.cuda.is_available():
         inputs = {k: v.to("cuda") for k, v in inputs.items()}
-    outputs = model.generate(**inputs, max_new_tokens=max_new_tokens)
+    # Use sampling to avoid verbatim copying of the prompt
+    gen_kwargs = dict(
+        max_new_tokens=max_new_tokens,
+        do_sample=True,
+        top_p=0.9,
+        temperature=0.7,
+        num_return_sequences=1,
+    )
+    outputs = model.generate(**inputs, **gen_kwargs)
     if outputs is None or len(outputs) == 0:
         return "(no output generated)"
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
