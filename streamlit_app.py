@@ -14,10 +14,17 @@ def load_model():
 
 def build_prompt(ingredients: str, vegetarian: bool) -> str:
     veg_clause = "Make vegetarian versions when possible." if vegetarian else "Include an optional healthier or vegetarian version when applicable."
-    prompt = (
-        "You are a helpful chef. Create 3 recipe ideas using only these ingredients: "
-        f"{ingredients}. For each recipe, provide:\n- Recipe name\n- Ingredients with approximate quantities\n- Step-by-step cooking instructions\n- Estimated total cooking time\n- An optional healthier or vegetarian version\n{veg_clause}\nKeep answers concise and easy to follow."
-    )
+    prompt = f"""
+You are a helpful chef. Create 3 recipe ideas using only these ingredients: {ingredients}.
+For each recipe, provide:
+- Recipe name
+- Ingredients with approximate quantities
+- Step-by-step cooking instructions
+- Estimated total cooking time
+- An optional healthier or vegetarian version
+{veg_clause}
+Keep answers concise and easy to follow.
+"""
     return prompt
 
 
@@ -27,6 +34,8 @@ def generate(prompt: str, max_new_tokens: int = 256) -> str:
     if torch.cuda.is_available():
         inputs = {k: v.to("cuda") for k, v in inputs.items()}
     outputs = model.generate(**inputs, max_new_tokens=max_new_tokens)
+    if outputs is None or len(outputs) == 0:
+        return "(no output generated)"
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
 
